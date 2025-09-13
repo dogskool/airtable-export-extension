@@ -90,7 +90,7 @@
     </div>
 
     <!-- Load required libraries -->
-    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
     <script>
@@ -187,33 +187,63 @@
             }
         }
 
-        function testExcelExport() {
+        async function testExcelExport() {
             try {
                 if (!testData.length) {
                     throw new Error('No test data available. Generate test data first.');
                 }
 
-                if (typeof XLSX === 'undefined') {
-                    throw new Error('XLSX library not loaded');
+                if (typeof ExcelJS === 'undefined') {
+                    throw new Error('ExcelJS library not loaded');
                 }
 
                 const headers = Object.keys(testData[0]);
-                const excelData = [
-                    headers,
-                    ...testData.map(row => headers.map(header => row[header]))
-                ];
-
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(excelData);
+                
+                // Create workbook using ExcelJS
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Test Data');
+                
+                // Add headers
+                worksheet.addRow(headers);
+                
+                // Style the header row
+                const headerRow = worksheet.getRow(1);
+                headerRow.font = { bold: true };
+                headerRow.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFE6E6FA' }
+                };
+                
+                // Add data rows
+                testData.forEach(rowData => {
+                    const row = worksheet.addRow(headers.map(header => rowData[header]));
+                });
                 
                 // Set column widths
-                const colWidths = headers.map(header => ({ wch: Math.max(header.length + 2, 15) }));
-                ws['!cols'] = colWidths;
+                worksheet.columns.forEach((column, index) => {
+                    const headerLength = headers[index].length;
+                    const maxDataLength = Math.max(
+                        ...testData.map(row => String(row[headers[index]] || '').length)
+                    );
+                    column.width = Math.min(Math.max(headerLength, maxDataLength) + 2, 50);
+                });
                 
-                XLSX.utils.book_append_sheet(wb, ws, 'Test Data');
+                // Add borders to all cells
+                worksheet.eachRow((row, rowNumber) => {
+                    row.eachCell((cell, colNumber) => {
+                        cell.border = {
+                            top: { style: 'thin' },
+                            left: { style: 'thin' },
+                            bottom: { style: 'thin' },
+                            right: { style: 'thin' }
+                        };
+                    });
+                });
                 
-                const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([excelBuffer], { 
+                // Generate and download file
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { 
                     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
                 });
                 const fileName = `test_export_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -237,12 +267,12 @@
         function testLibraries() {
             const results = [];
             
-            // Test XLSX library
-            if (typeof XLSX !== 'undefined') {
-                results.push('✅ XLSX library loaded successfully');
-                results.push(`   Version: ${XLSX.version || 'Unknown'}`);
+            // Test ExcelJS library
+            if (typeof ExcelJS !== 'undefined') {
+                results.push('✅ ExcelJS library loaded successfully');
+                results.push(`   Version: ${ExcelJS.version || 'Unknown'}`);
             } else {
-                results.push('❌ XLSX library not loaded');
+                results.push('❌ ExcelJS library not loaded');
             }
             
             // Test FileSaver library

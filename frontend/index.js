@@ -1,6 +1,6 @@
 import {initializeBlock, useTable, useView, useRecords, Button, Text, Box, Select, Loader, Alert} from '@airtable/blocks/ui';
 import React, {useState, useCallback} from 'react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import {saveAs} from 'file-saver';
 import './style.css';
 
@@ -100,25 +100,53 @@ function ExportExtension() {
                 });
             });
 
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet([headers, ...excelData]);
+            // Create workbook using ExcelJS
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet(view.name);
+            
+            // Add headers
+            worksheet.addRow(headers);
+            
+            // Style the header row
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE6E6FA' }
+            };
+            
+            // Add data rows
+            excelData.forEach(rowData => {
+                worksheet.addRow(rowData);
+            });
             
             // Set column widths
-            const colWidths = headers.map((header, index) => {
-                const maxLength = Math.max(
-                    header.length,
+            worksheet.columns.forEach((column, index) => {
+                const headerLength = headers[index].length;
+                const maxDataLength = Math.max(
                     ...excelData.map(row => String(row[index] || '').length)
                 );
-                return { wch: Math.min(maxLength + 2, 50) };
+                column.width = Math.min(Math.max(headerLength, maxDataLength) + 2, 50);
             });
-            ws['!cols'] = colWidths;
             
-            XLSX.utils.book_append_sheet(wb, ws, view.name);
+            // Add borders to all cells
+            worksheet.eachRow((row) => {
+                row.eachCell((cell) => {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+            });
             
             // Generate and download file
-            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-            const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { 
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            });
             const fileName = `${table.name}_${view.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
             saveAs(blob, fileName);
             

@@ -42,7 +42,7 @@ try {
     console.log('✅ package.json is valid JSON');
     
     // Check required dependencies
-    const requiredDeps = ['@airtable/blocks', 'react', 'react-dom', 'xlsx', 'file-saver'];
+    const requiredDeps = ['@airtable/blocks', 'react', 'react-dom', 'exceljs', 'file-saver'];
     const missingDeps = requiredDeps.filter(dep => !packageJson.dependencies[dep]);
     
     if (missingDeps.length === 0) {
@@ -87,10 +87,10 @@ try {
         console.log('❌ Airtable Blocks SDK import missing');
     }
     
-    if (frontendCode.includes('import * as XLSX')) {
-        console.log('✅ XLSX library import found');
+    if (frontendCode.includes('import ExcelJS')) {
+        console.log('✅ ExcelJS library import found');
     } else {
-        console.log('❌ XLSX library import missing');
+        console.log('❌ ExcelJS library import missing');
     }
     
     if (frontendCode.includes('import {saveAs}')) {
