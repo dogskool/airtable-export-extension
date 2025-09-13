@@ -1,0 +1,161 @@
+/* Export Extension Styles */
+.export-container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.export-container h1,
+.export-container h2,
+.export-container h3 {
+    margin: 0 0 1rem 0;
+    font-weight: 600;
+}
+
+.export-container .export-info {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.export-container .export-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.export-container .export-info p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.export-container .format-selector {
+    margin-bottom: 1.5rem;
+}
+
+.export-container .format-selector label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.export-container .export-button {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.export-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.export-container .tip {
+    background: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #0066cc;
+}
+
+.export-container .error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.export-container .success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .export-container {
+        color: #fff;
+        background-color: #111215;
+    }
+    
+    .export-container .export-info {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .export-container .export-info h4 {
+        color: #e2e8f0;
+    }
+    
+    .export-container .export-info p {
+        color: #a0aec0;
+    }
+    
+    .export-container .format-selector label {
+        color: #e2e8f0;
+    }
+    
+    .export-container .tip {
+        background: #1a365d;
+        border-color: #2b6cb0;
+        color: #90cdf4;
+    }
+    
+    .export-container .error {
+        background: #742a2a;
+        border-color: #e53e3e;
+        color: #fed7d7;
+    }
+    
+    .export-container .success {
+        background: #22543d;
+        border-color: #38a169;
+        color: #c6f6d5;
+    }
+}
+
+/* Loading animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive design */
+@media (max-width: 400px) {
+    .export-container {
+        padding: 1rem;
+    }
+    
+    .export-container .export-button {
+        padding: 0.625rem 1rem;
+        font-size: 0.9rem;
+    }
+}

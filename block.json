@@ -1,0 +1,14 @@
+{
+    "version": "1.0",
+    "frontendEntry": "./frontend/index.js",
+    "name": "Export View Data",
+    "description": "Export your Airtable view data to Excel (.xlsx) or CSV format with a single click. Perfect for data analysis, reporting, and sharing data outside of Airtable.",
+    "author": "Your Name",
+    "authorEmail": "your.email@example.com",
+    "icon": "📊",
+    "tags": ["export", "excel", "csv", "data", "view"],
+    "permissions": {
+        "read": true,
+        "write": false
+    }
+}
