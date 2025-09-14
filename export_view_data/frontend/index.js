@@ -83,6 +83,8 @@ function ExportExtension() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [customFilename, setCustomFilename] = useState('');
+    const [showFilenameInput, setShowFilenameInput] = useState(false);
     const [isMounted, setIsMounted] = useState(true);
     
     // Get available tables and views with safety checks
@@ -94,6 +96,23 @@ function ExportExtension() {
     // Always call useRecords hook with a valid view
     const fallbackView = tables.length > 0 && tables[0].views.length > 0 ? tables[0].views[0] : null;
     const records = useRecords(selectedView || fallbackView);
+
+    // Generate default filename
+    const generateDefaultFilename = () => {
+        if (!selectedTable || !selectedView) return '';
+        const date = new Date().toISOString().split('T')[0];
+        const extension = exportFormat === 'excel' ? 'xlsx' : 'csv';
+        return `${selectedTable.name}_${selectedView.name}_${date}.${extension}`;
+    };
+
+    // Get the filename to use for export
+    const getExportFilename = () => {
+        if (customFilename.trim()) {
+            const extension = exportFormat === 'excel' ? 'xlsx' : 'csv';
+            return customFilename.endsWith(`.${extension}`) ? customFilename : `${customFilename}.${extension}`;
+        }
+        return generateDefaultFilename();
+    };
     
     // Safe state update function with debouncing
     const safeSetState = useCallback((setter, value, delay = 0) => {
@@ -219,7 +238,7 @@ function ExportExtension() {
 
             // Create and download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.csv`;
+            const fileName = getExportFilename();
             
             // Use the new download function with completion callback
             downloadFile(blob, fileName, (success) => {
@@ -337,7 +356,7 @@ function ExportExtension() {
             const blob = new Blob([buffer], { 
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
             });
-            const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            const fileName = getExportFilename();
             
             // Use the new download function with completion callback
             downloadFile(blob, fileName, (success) => {
@@ -475,6 +494,51 @@ function ExportExtension() {
                     ]}
                     width="100%"
                 />
+            </Box>
+
+            {/* Filename Customization */}
+            <Box marginBottom={3}>
+                <Text size="small" marginBottom={1}>
+                    Filename:
+                </Text>
+                <Box display="flex" alignItems="center" gap={2}>
+                    <Text size="small" textColor="light" style={{ flex: 1 }}>
+                        {generateDefaultFilename()}
+                    </Text>
+                    <Button
+                        size="small"
+                        variant="secondary"
+                        onClick={() => setShowFilenameInput(!showFilenameInput)}
+                        disabled={isExporting}
+                    >
+                        {showFilenameInput ? 'Use Default' : 'Customize'}
+                    </Button>
+                </Box>
+                
+                {showFilenameInput && (
+                    <Box marginTop={2}>
+                        <Text size="small" marginBottom={1}>
+                            Custom filename (without extension):
+                        </Text>
+                        <input
+                            type="text"
+                            value={customFilename}
+                            onChange={(e) => setCustomFilename(e.target.value)}
+                            placeholder={`${selectedTable?.name || 'table'}_${selectedView?.name || 'view'}_${new Date().toISOString().split('T')[0]}`}
+                            disabled={isExporting}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                fontSize: '14px'
+                            }}
+                        />
+                        <Text size="small" textColor="light" marginTop={1}>
+                            Extension (.{exportFormat === 'excel' ? 'xlsx' : 'csv'}) will be added automatically
+                        </Text>
+                    </Box>
+                )}
             </Box>
 
             {error && (
