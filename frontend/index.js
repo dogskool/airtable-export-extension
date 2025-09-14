@@ -15,22 +15,22 @@ function ExportExtension() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     
-    // Get available tables and views
-    const tables = base.tables;
-    const selectedTable = selectedTableId ? base.getTableById(selectedTableId) : null;
-    const views = selectedTable ? selectedTable.views : [];
+    // Get available tables and views with safety checks
+    const tables = base?.tables || [];
+    const selectedTable = selectedTableId && base ? base.getTableById(selectedTableId) : null;
+    const views = selectedTable?.views || [];
     const selectedView = selectedViewId && selectedTable ? selectedTable.getViewById(selectedViewId) : null;
     const records = selectedView ? useRecords(selectedView) : [];
     
     // Set default selections when tables are available
     React.useEffect(() => {
-        if (tables.length > 0 && !selectedTableId) {
+        if (tables && tables.length > 0 && !selectedTableId) {
             setSelectedTableId(tables[0].id);
         }
     }, [tables, selectedTableId]);
     
     React.useEffect(() => {
-        if (views.length > 0 && !selectedViewId) {
+        if (views && views.length > 0 && !selectedViewId) {
             setSelectedViewId(views[0].id);
         }
     }, [views, selectedViewId]);
@@ -202,6 +202,18 @@ function ExportExtension() {
             setIsExporting(false);
         }
     }, [exportFormat, exportToCSV, exportToExcel]);
+
+    // Show loading state if base is not ready
+    if (!base) {
+        return (
+            <Box padding={3} className="export-container">
+                <Text size="large" marginBottom={2}>
+                    📊 Export View Data
+                </Text>
+                <Text>Loading...</Text>
+            </Box>
+        );
+    }
 
     return (
         <Box padding={3} className="export-container">
