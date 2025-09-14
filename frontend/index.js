@@ -6,22 +6,46 @@ import './style.css';
 
 function ExportExtension() {
     const base = useBase();
-    const table = base.getTableByName(base.tables[0].name); // Get first table
-    const view = table.views[0]; // Get first view
-    const records = useRecords(view);
     
-    const [exportFormat, setExportFormat] = useState('csv');
+    // State for table and view selection
+    const [selectedTableId, setSelectedTableId] = useState(null);
+    const [selectedViewId, setSelectedViewId] = useState(null);
+    const [exportFormat, setExportFormat] = useState('excel');
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    
+    // Get available tables and views
+    const tables = base.tables;
+    const selectedTable = selectedTableId ? base.getTableById(selectedTableId) : null;
+    const views = selectedTable ? selectedTable.views : [];
+    const selectedView = selectedViewId && selectedTable ? selectedTable.getViewById(selectedViewId) : null;
+    const records = selectedView ? useRecords(selectedView) : [];
+    
+    // Set default selections when tables are available
+    React.useEffect(() => {
+        if (tables.length > 0 && !selectedTableId) {
+            setSelectedTableId(tables[0].id);
+        }
+    }, [tables, selectedTableId]);
+    
+    React.useEffect(() => {
+        if (views.length > 0 && !selectedViewId) {
+            setSelectedViewId(views[0].id);
+        }
+    }, [views, selectedViewId]);
 
     const exportToCSV = useCallback(async () => {
         try {
+            if (!selectedTable || !selectedView) {
+                throw new Error('Please select a table and view');
+            }
+            
             if (!records || records.length === 0) {
                 throw new Error('No records to export');
             }
 
-            const fields = table.fields;
+            const fields = selectedTable.fields;
             const headers = fields.map(field => field.name);
             
             const csvData = records.map(record => {
@@ -65,15 +89,19 @@ function ExportExtension() {
             setError(`CSV Export failed: ${err.message}`);
             setSuccess(null);
         }
-    }, [records, table, view]);
+    }, [records, selectedTable, selectedView]);
 
     const exportToExcel = useCallback(async () => {
         try {
+            if (!selectedTable || !selectedView) {
+                throw new Error('Please select a table and view');
+            }
+            
             if (!records || records.length === 0) {
                 throw new Error('No records to export');
             }
 
-            const fields = table.fields;
+            const fields = selectedTable.fields;
             const headers = fields.map(field => field.name);
             
             const excelData = records.map(record => {
@@ -157,7 +185,7 @@ function ExportExtension() {
             setError(`Excel Export failed: ${err.message}`);
             setSuccess(null);
         }
-    }, [records, table, view]);
+    }, [records, selectedTable, selectedView]);
 
     const handleExport = useCallback(async () => {
         setIsExporting(true);
@@ -175,31 +203,61 @@ function ExportExtension() {
         }
     }, [exportFormat, exportToCSV, exportToExcel]);
 
-    if (!table || !view) {
-        return (
-            <Box padding={3}>
-                <Text>Please select a table and view to export data.</Text>
-            </Box>
-        );
-    }
-
     return (
         <Box padding={3} className="export-container">
             <Text size="large" marginBottom={2}>
                 📊 Export View Data
             </Text>
             
+            {/* Table Selection */}
             <Box marginBottom={3}>
-                <Text size="small" marginBottom={1}>
-                    Table: <strong>{table.name}</strong>
+                <Text size="small" fontWeight="bold" marginBottom={1}>
+                    Select Table:
                 </Text>
-                <Text size="small" marginBottom={2}>
-                    View: <strong>{view.name}</strong>
-                </Text>
-                <Text size="small" textColor="light">
-                    {records ? `${records.length} records` : 'Loading records...'}
-                </Text>
+                <Select
+                    value={selectedTableId || ''}
+                    onChange={e => {
+                        setSelectedTableId(e.target.value);
+                        setSelectedViewId(null); // Reset view when table changes
+                    }}
+                    options={tables.map(table => ({
+                        value: table.id,
+                        label: table.name
+                    }))}
+                    disabled={isExporting}
+                />
             </Box>
+            
+            {/* View Selection */}
+            <Box marginBottom={3}>
+                <Text size="small" fontWeight="bold" marginBottom={1}>
+                    Select View:
+                </Text>
+                <Select
+                    value={selectedViewId || ''}
+                    onChange={e => setSelectedViewId(e.target.value)}
+                    options={views.map(view => ({
+                        value: view.id,
+                        label: view.name
+                    }))}
+                    disabled={isExporting || !selectedTable}
+                />
+            </Box>
+            
+            {/* Selected Table/View Info */}
+            {selectedTable && selectedView && (
+                <Box marginBottom={3}>
+                    <Text size="small" marginBottom={1}>
+                        Table: <strong>{selectedTable.name}</strong>
+                    </Text>
+                    <Text size="small" marginBottom={2}>
+                        View: <strong>{selectedView.name}</strong>
+                    </Text>
+                    <Text size="small" textColor="light">
+                        {records ? `${records.length} records` : 'Loading records...'}
+                    </Text>
+                </Box>
+            )}
 
             <Box marginBottom={3}>
                 <Text size="small" marginBottom={1}>
@@ -230,7 +288,7 @@ function ExportExtension() {
 
             <Button
                 onClick={handleExport}
-                disabled={isExporting || !records || records.length === 0}
+                disabled={isExporting || !selectedTable || !selectedView || !records || records.length === 0}
                 width="100%"
                 size="large"
                 icon={isExporting ? <Loader /> : undefined}
