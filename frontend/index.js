@@ -44,7 +44,7 @@ class ErrorBoundary extends React.Component {
 }
 
 // Custom download function that works in Airtable environment
-const downloadFile = (blob, fileName) => {
+const downloadFile = (blob, fileName, onComplete) => {
     try {
         // Create a temporary URL for the blob
         const url = URL.createObjectURL(blob);
@@ -54,17 +54,43 @@ const downloadFile = (blob, fileName) => {
         link.href = url;
         link.download = fileName;
         
+        // Add event listeners for download completion
+        const handleDownloadComplete = () => {
+            try {
+                // Clean up the URL
+                URL.revokeObjectURL(url);
+                
+                // Call completion callback after a short delay
+                if (onComplete) {
+                    setTimeout(() => {
+                        onComplete(true);
+                    }, 50);
+                }
+            } catch (err) {
+                console.error('Download completion error:', err);
+                if (onComplete) {
+                    onComplete(false);
+                }
+            }
+        };
+        
+        // Listen for download events
+        link.addEventListener('click', () => {
+            // Use a longer timeout to ensure download starts
+            setTimeout(handleDownloadComplete, 200);
+        });
+        
         // Append to body, click, and remove
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        // Clean up the URL
-        URL.revokeObjectURL(url);
-        
         return true;
     } catch (error) {
         console.error('Download error:', error);
+        if (onComplete) {
+            onComplete(false);
+        }
         return false;
     }
 };
@@ -92,13 +118,36 @@ function ExportExtension() {
     const fallbackView = tables.length > 0 && tables[0].views.length > 0 ? tables[0].views[0] : null;
     const records = useRecords(selectedView || fallbackView);
     
-    // Safe state update function
-    const safeSetState = useCallback((setter, value) => {
+    // Safe state update function with debouncing
+    const safeSetState = useCallback((setter, value, delay = 0) => {
         if (isMounted) {
             try {
-                setter(value);
+                if (delay > 0) {
+                    setTimeout(() => {
+                        if (isMounted) {
+                            setter(value);
+                        }
+                    }, delay);
+                } else {
+                    setter(value);
+                }
             } catch (err) {
                 console.error('State update error:', err);
+            }
+        }
+    }, [isMounted]);
+
+    // Debounced state update function
+    const debouncedSetState = useCallback((setter, value, delay = 100) => {
+        if (isMounted) {
+            try {
+                setTimeout(() => {
+                    if (isMounted) {
+                        setter(value);
+                    }
+                }, delay);
+            } catch (err) {
+                console.error('Debounced state update error:', err);
             }
         }
     }, [isMounted]);
@@ -188,25 +237,25 @@ function ExportExtension() {
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.csv`;
             
-            const downloadSuccess = downloadFile(blob, fileName);
-            if (downloadSuccess) {
-                safeSetState(setSuccess, `Successfully exported ${records ? records.length : 0} records to CSV`);
-                safeSetState(setError, null);
-            } else {
-                safeSetState(setError, 'Failed to download file. Please try again.');
-                safeSetState(setSuccess, null);
-            }
+            // Use the new download function with completion callback
+            downloadFile(blob, fileName, (success) => {
+                if (success) {
+                    debouncedSetState(setSuccess, `Successfully exported ${records ? records.length : 0} records to CSV`, 100);
+                    debouncedSetState(setError, null, 100);
+                } else {
+                    debouncedSetState(setError, 'Failed to download file. Please try again.', 100);
+                    debouncedSetState(setSuccess, null, 100);
+                }
+                // Always reset exporting state after download attempt
+                debouncedSetState(setIsExporting, false, 150);
+            });
         } catch (err) {
             console.error('CSV Export error:', err);
-            safeSetState(setError, `CSV Export failed: ${err.message}`);
-            safeSetState(setSuccess, null);
-        } finally {
-            // Use setTimeout to ensure state update happens after download
-            setTimeout(() => {
-                safeSetState(setIsExporting, false);
-            }, 100);
+            debouncedSetState(setError, `CSV Export failed: ${err.message}`, 100);
+            debouncedSetState(setSuccess, null, 100);
+            debouncedSetState(setIsExporting, false, 150);
         }
-    }, [records, selectedTable, selectedView, safeSetState]);
+    }, [records, selectedTable, selectedView, debouncedSetState]);
 
     const exportToExcel = useCallback(async () => {
         try {
@@ -299,25 +348,25 @@ function ExportExtension() {
             });
             const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
             
-            const downloadSuccess = downloadFile(blob, fileName);
-            if (downloadSuccess) {
-                safeSetState(setSuccess, `Successfully exported ${records ? records.length : 0} records to Excel`);
-                safeSetState(setError, null);
-            } else {
-                safeSetState(setError, 'Failed to download file. Please try again.');
-                safeSetState(setSuccess, null);
-            }
+            // Use the new download function with completion callback
+            downloadFile(blob, fileName, (success) => {
+                if (success) {
+                    debouncedSetState(setSuccess, `Successfully exported ${records ? records.length : 0} records to Excel`, 100);
+                    debouncedSetState(setError, null, 100);
+                } else {
+                    debouncedSetState(setError, 'Failed to download file. Please try again.', 100);
+                    debouncedSetState(setSuccess, null, 100);
+                }
+                // Always reset exporting state after download attempt
+                debouncedSetState(setIsExporting, false, 150);
+            });
         } catch (err) {
             console.error('Excel Export error:', err);
-            safeSetState(setError, `Excel Export failed: ${err.message}`);
-            safeSetState(setSuccess, null);
-        } finally {
-            // Use setTimeout to ensure state update happens after download
-            setTimeout(() => {
-                safeSetState(setIsExporting, false);
-            }, 100);
+            debouncedSetState(setError, `Excel Export failed: ${err.message}`, 100);
+            debouncedSetState(setSuccess, null, 100);
+            debouncedSetState(setIsExporting, false, 150);
         }
-    }, [records, selectedTable, selectedView, safeSetState]);
+    }, [records, selectedTable, selectedView, debouncedSetState]);
 
     const handleExport = useCallback(async () => {
         safeSetState(setIsExporting, true);
