@@ -43,8 +43,8 @@ class ErrorBoundary extends React.Component {
     }
 }
 
-// Custom download function that works in Airtable environment
-const downloadFile = (blob, fileName, onComplete) => {
+// Simple download function that works in Airtable environment
+const downloadFile = (blob, fileName) => {
     try {
         // Create a temporary URL for the blob
         const url = URL.createObjectURL(blob);
@@ -53,61 +53,37 @@ const downloadFile = (blob, fileName, onComplete) => {
         const link = document.createElement('a');
         link.href = url;
         link.download = fileName;
-        
-        // Add event listeners for download completion
-        const handleDownloadComplete = () => {
-            try {
-                // Clean up the URL
-                URL.revokeObjectURL(url);
-                
-                // Call completion callback after a short delay
-                if (onComplete) {
-                    setTimeout(() => {
-                        onComplete(true);
-                    }, 50);
-                }
-            } catch (err) {
-                console.error('Download completion error:', err);
-                if (onComplete) {
-                    onComplete(false);
-                }
-            }
-        };
-        
-        // Listen for download events
-        link.addEventListener('click', () => {
-            // Use a longer timeout to ensure download starts
-            setTimeout(handleDownloadComplete, 200);
-        });
+        link.style.display = 'none';
         
         // Append to body, click, and remove
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
+        // Clean up the URL after a short delay
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 1000);
+        
         return true;
     } catch (error) {
         console.error('Download error:', error);
-        if (onComplete) {
-            onComplete(false);
-        }
         return false;
     }
 };
 
 function ExportExtension() {
-    try {
-        const base = useBase();
-        
-        // State for table and view selection
-        const [selectedTableId, setSelectedTableId] = useState(null);
-        const [selectedViewId, setSelectedViewId] = useState(null);
-        const [exportFormat, setExportFormat] = useState('excel');
-        const [isExporting, setIsExporting] = useState(false);
-        const [error, setError] = useState(null);
-        const [success, setSuccess] = useState(null);
-        const [isInitialized, setIsInitialized] = useState(false);
-        const [isMounted, setIsMounted] = useState(true);
+    const base = useBase();
+    
+    // State for table and view selection
+    const [selectedTableId, setSelectedTableId] = useState(null);
+    const [selectedViewId, setSelectedViewId] = useState(null);
+    const [exportFormat, setExportFormat] = useState('excel');
+    const [isExporting, setIsExporting] = useState(false);
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [isMounted, setIsMounted] = useState(true);
     
     // Get available tables and views with safety checks
     const tables = base?.tables || [];
@@ -530,25 +506,6 @@ function ExportExtension() {
             </Box>
         </Box>
     );
-    } catch (err) {
-        console.error('ExportExtension render error:', err);
-        return (
-            <Box padding={3} className="export-container">
-                <Text size="large" marginBottom={2}>
-                    ⚠️ Something went wrong
-                </Text>
-                <Text marginBottom={2}>
-                    The extension encountered an error during rendering. Please refresh the page and try again.
-                </Text>
-                <Text size="small" textColor="light">
-                    Error: {err.message}
-                </Text>
-                <Button onClick={() => window.location.reload()} size="large" marginTop={2}>
-                    Refresh Extension
-                </Button>
-            </Box>
-        );
-    }
 }
 
 initializeBlock(() => (
