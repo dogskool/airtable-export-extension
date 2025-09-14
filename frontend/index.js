@@ -82,7 +82,7 @@ function ExportExtension() {
 
             // Create and download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const fileName = `${table.name}_${view.name}_${new Date().toISOString().split('T')[0]}.csv`;
+            const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.csv`;
             saveAs(blob, fileName);
             
             setSuccess(`Successfully exported ${records.length} records to CSV`);
@@ -133,7 +133,7 @@ function ExportExtension() {
 
             // Create workbook using ExcelJS
             const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet(view.name);
+            const worksheet = workbook.addWorksheet(selectedView.name);
             
             // Add headers
             worksheet.addRow(headers);
@@ -178,7 +178,7 @@ function ExportExtension() {
             const blob = new Blob([buffer], { 
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
             });
-            const fileName = `${table.name}_${view.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
             saveAs(blob, fileName);
             
             setSuccess(`Successfully exported ${records.length} records to Excel`);
