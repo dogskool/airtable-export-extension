@@ -20,7 +20,9 @@ function ExportExtension() {
     const selectedTable = selectedTableId && base ? base.getTableById(selectedTableId) : null;
     const views = selectedTable?.views || [];
     const selectedView = selectedViewId && selectedTable ? selectedTable.getViewById(selectedViewId) : null;
-    const records = selectedView ? useRecords(selectedView) : [];
+    
+    // Always call useRecords hook, but pass null if no view is selected
+    const records = useRecords(selectedView || null);
     
     // Set default selections when tables are available
     React.useEffect(() => {
@@ -266,7 +268,7 @@ function ExportExtension() {
                         View: <strong>{selectedView.name}</strong>
                     </Text>
                     <Text size="small" textColor="light">
-                        {records ? `${records.length} records` : 'Loading records...'}
+                        {records && records.length !== undefined ? `${records.length} records` : 'Loading records...'}
                     </Text>
                 </Box>
             )}
