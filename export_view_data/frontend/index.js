@@ -84,10 +84,16 @@ function ExportExtension() {
             // Create and download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.csv`;
-            saveAs(blob, fileName);
             
-            setSuccess(`Successfully exported ${records.length} records to CSV`);
-            setError(null);
+            try {
+                saveAs(blob, fileName);
+                setSuccess(`Successfully exported ${records ? records.length : 0} records to CSV`);
+                setError(null);
+            } catch (saveError) {
+                console.error('Save error:', saveError);
+                setError(`File saved but download may have failed: ${saveError.message}`);
+                setSuccess(null);
+            }
         } catch (err) {
             setError(`CSV Export failed: ${err.message}`);
             setSuccess(null);
@@ -180,10 +186,16 @@ function ExportExtension() {
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
             });
             const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
-            saveAs(blob, fileName);
             
-            setSuccess(`Successfully exported ${records.length} records to Excel`);
-            setError(null);
+            try {
+                saveAs(blob, fileName);
+                setSuccess(`Successfully exported ${records ? records.length : 0} records to Excel`);
+                setError(null);
+            } catch (saveError) {
+                console.error('Save error:', saveError);
+                setError(`File saved but download may have failed: ${saveError.message}`);
+                setSuccess(null);
+            }
         } catch (err) {
             setError(`Excel Export failed: ${err.message}`);
             setSuccess(null);
