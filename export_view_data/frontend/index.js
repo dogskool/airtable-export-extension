@@ -1,12 +1,13 @@
-import {initializeBlock, useTable, useView, useRecords, Button, Text, Box, Select, Loader, Alert} from '@airtable/blocks/ui';
+import {initializeBlock, useBase, useView, useRecords, Button, Text, Box, Select, Loader, Alert} from '@airtable/blocks/ui';
 import React, {useState, useCallback} from 'react';
 import ExcelJS from 'exceljs';
 import {saveAs} from 'file-saver';
 import './style.css';
 
 function ExportExtension() {
-    const table = useTable();
+    const base = useBase();
     const view = useView();
+    const table = view.parentTable;
     const records = useRecords(view);
     
     const [exportFormat, setExportFormat] = useState('csv');
