@@ -121,7 +121,88 @@ function ExportExtension() {
             if (base && tables && tables.length > 0) {
                 setIsInitialized(true);
                 if (!selectedTableId) {
-                    setSelectedTableId(tables[0].id);
+                    // Try to get the current table and view from the Airtable context
+                    try {
+                        console.log('Attempting to detect current context...');
+                        console.log('Available base methods:', Object.getOwnPropertyNames(base));
+                        
+                        // Try different approaches to get current context
+                        let currentTableId = null;
+                        let currentViewId = null;
+                        
+                        // Method 1: Try base.getTableId() and base.getViewId()
+                        if (typeof base.getTableId === 'function') {
+                            currentTableId = base.getTableId();
+                            console.log('Got current table ID:', currentTableId);
+                        }
+                        
+                        if (typeof base.getViewId === 'function') {
+                            currentViewId = base.getViewId();
+                            console.log('Got current view ID:', currentViewId);
+                        }
+                        
+                        // Method 2: Try accessing from base properties
+                        if (!currentTableId && base.activeTableId) {
+                            currentTableId = base.activeTableId;
+                            console.log('Got active table ID from property:', currentTableId);
+                        }
+                        
+                        if (!currentViewId && base.activeViewId) {
+                            currentViewId = base.activeViewId;
+                            console.log('Got active view ID from property:', currentViewId);
+                        }
+                        
+                        // Method 3: Try to get from the first table's active view
+                        if (!currentTableId && tables.length > 0) {
+                            currentTableId = tables[0].id;
+                            console.log('Using first table as fallback:', currentTableId);
+                        }
+                        
+                        if (currentTableId) {
+                            const currentTable = base.getTableById(currentTableId);
+                            if (currentTable) {
+                                console.log('Found current table:', currentTable.name);
+                                
+                                // Try to get the current view for this table
+                                if (!currentViewId && typeof currentTable.getViewId === 'function') {
+                                    currentViewId = currentTable.getViewId();
+                                    console.log('Got current view ID from table:', currentViewId);
+                                }
+                                
+                                // If still no view ID, use the first view
+                                if (!currentViewId && currentTable.views && currentTable.views.length > 0) {
+                                    currentViewId = currentTable.views[0].id;
+                                    console.log('Using first view as fallback:', currentViewId);
+                                }
+                                
+                                if (currentViewId) {
+                                    const currentView = currentTable.getViewById(currentViewId);
+                                    if (currentView) {
+                                        console.log('Found current view:', currentView.name);
+                                        setSelectedTableId(currentTable.id);
+                                        setSelectedViewId(currentView.id);
+                                        console.log('Successfully set table and view selections');
+                                    } else {
+                                        console.log('Could not find view, using first table');
+                                        setSelectedTableId(tables[0].id);
+                                    }
+                                } else {
+                                    console.log('No view ID found, using first table');
+                                    setSelectedTableId(tables[0].id);
+                                }
+                            } else {
+                                console.log('Could not find table, using first table');
+                                setSelectedTableId(tables[0].id);
+                            }
+                        } else {
+                            console.log('No table ID found, using first table');
+                            setSelectedTableId(tables[0].id);
+                        }
+                    } catch (contextError) {
+                        console.log('Could not detect current context, using defaults:', contextError);
+                        // Fallback to first table and view
+                        setSelectedTableId(tables[0].id);
+                    }
                 }
             }
         } catch (err) {
@@ -130,17 +211,62 @@ function ExportExtension() {
         }
     }, [base, tables, selectedTableId]);
     
+    // Additional attempt to detect context after component is fully loaded
+    React.useEffect(() => {
+        if (isInitialized && selectedTableId && !selectedViewId) {
+            console.log('Attempting additional context detection...');
+            try {
+                const selectedTable = base.getTableById(selectedTableId);
+                if (selectedTable) {
+                    // Try to get the current view for the selected table
+                    let currentViewId = null;
+                    
+                    if (typeof selectedTable.getViewId === 'function') {
+                        currentViewId = selectedTable.getViewId();
+                        console.log('Got current view ID from selected table:', currentViewId);
+                    }
+                    
+                    if (currentViewId) {
+                        const currentView = selectedTable.getViewById(currentViewId);
+                        if (currentView) {
+                            console.log('Found current view for selected table:', currentView.name);
+                            setSelectedViewId(currentView.id);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Additional context detection failed:', error);
+            }
+        }
+    }, [isInitialized, selectedTableId, selectedViewId, base]);
+    
     // Set default view when table changes
     React.useEffect(() => {
         try {
             if (views && views.length > 0 && !selectedViewId) {
-                setSelectedViewId(views[0].id);
+                // Try to get the current view from the selected table
+                try {
+                    const currentViewId = selectedTable ? selectedTable.getViewId() : null;
+                    const currentView = currentViewId && selectedTable ? selectedTable.getViewById(currentViewId) : null;
+                    
+                    if (currentView) {
+                        console.log('Auto-detected current view for table:', currentView.name);
+                        setSelectedViewId(currentView.id);
+                    } else {
+                        // Fallback to first view
+                        setSelectedViewId(views[0].id);
+                    }
+                } catch (contextError) {
+                    console.log('Could not detect current view, using first view:', contextError);
+                    // Fallback to first view
+                    setSelectedViewId(views[0].id);
+                }
             }
         } catch (err) {
             console.error('View selection error:', err);
             setError('Failed to load views. Please try selecting a different table.');
         }
-    }, [views, selectedViewId]);
+    }, [views, selectedViewId, selectedTable]);
 
     const exportToCSV = useCallback(async () => {
         try {
