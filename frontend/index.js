@@ -96,17 +96,18 @@ const downloadFile = (blob, fileName, onComplete) => {
 };
 
 function ExportExtension() {
-    const base = useBase();
-    
-    // State for table and view selection
-    const [selectedTableId, setSelectedTableId] = useState(null);
-    const [selectedViewId, setSelectedViewId] = useState(null);
-    const [exportFormat, setExportFormat] = useState('excel');
-    const [isExporting, setIsExporting] = useState(false);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
-    const [isInitialized, setIsInitialized] = useState(false);
-    const [isMounted, setIsMounted] = useState(true);
+    try {
+        const base = useBase();
+        
+        // State for table and view selection
+        const [selectedTableId, setSelectedTableId] = useState(null);
+        const [selectedViewId, setSelectedViewId] = useState(null);
+        const [exportFormat, setExportFormat] = useState('excel');
+        const [isExporting, setIsExporting] = useState(false);
+        const [error, setError] = useState(null);
+        const [success, setSuccess] = useState(null);
+        const [isInitialized, setIsInitialized] = useState(false);
+        const [isMounted, setIsMounted] = useState(true);
     
     // Get available tables and views with safety checks
     const tables = base?.tables || [];
@@ -188,6 +189,11 @@ function ExportExtension() {
 
     const exportToCSV = useCallback(async () => {
         try {
+            console.log('CSV export function called');
+            console.log('selectedTable:', selectedTable);
+            console.log('selectedView:', selectedView);
+            console.log('records:', records);
+            
             safeSetState(setIsExporting, true);
             safeSetState(setError, null);
             safeSetState(setSuccess, null);
@@ -199,6 +205,8 @@ function ExportExtension() {
             if (!records || records.length === 0) {
                 throw new Error('No records to export');
             }
+            
+            console.log('CSV export validation passed, processing data...');
 
             const fields = selectedTable.fields;
             const headers = fields.map(field => field.name);
@@ -259,6 +267,11 @@ function ExportExtension() {
 
     const exportToExcel = useCallback(async () => {
         try {
+            console.log('Excel export function called');
+            console.log('selectedTable:', selectedTable);
+            console.log('selectedView:', selectedView);
+            console.log('records:', records);
+            
             safeSetState(setIsExporting, true);
             safeSetState(setError, null);
             safeSetState(setSuccess, null);
@@ -270,6 +283,8 @@ function ExportExtension() {
             if (!records || records.length === 0) {
                 throw new Error('No records to export');
             }
+            
+            console.log('Excel export validation passed, processing data...');
 
             const fields = selectedTable.fields;
             const headers = fields.map(field => field.name);
@@ -369,26 +384,39 @@ function ExportExtension() {
     }, [records, selectedTable, selectedView, debouncedSetState]);
 
     const handleExport = useCallback(async () => {
-        safeSetState(setIsExporting, true);
-        safeSetState(setError, null);
-        safeSetState(setSuccess, null);
-        
         try {
+            console.log('Export started, format:', exportFormat);
+            console.log('Selected table:', selectedTable?.name);
+            console.log('Selected view:', selectedView?.name);
+            console.log('Records count:', records?.length);
+            
+            safeSetState(setIsExporting, true);
+            safeSetState(setError, null);
+            safeSetState(setSuccess, null);
+            
+            // Add a small delay to ensure state updates are processed
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
             if (exportFormat === 'csv') {
+                console.log('Starting CSV export...');
                 await exportToCSV();
             } else {
+                console.log('Starting Excel export...');
                 await exportToExcel();
             }
+            
+            console.log('Export completed successfully');
         } catch (err) {
-            safeSetState(setError, `Export failed: ${err.message}`);
-            safeSetState(setSuccess, null);
+            console.error('Export error in handleExport:', err);
+            debouncedSetState(setError, `Export failed: ${err.message}`, 100);
+            debouncedSetState(setSuccess, null, 100);
         } finally {
             // Use setTimeout to ensure state update happens after export
             setTimeout(() => {
                 safeSetState(setIsExporting, false);
             }, 100);
         }
-    }, [exportFormat, exportToCSV, exportToExcel, safeSetState]);
+    }, [exportFormat, exportToCSV, exportToExcel, safeSetState, debouncedSetState, selectedTable, selectedView, records]);
 
     // Show loading state if base is not ready or not initialized
     if (!base || !isInitialized) {
@@ -502,6 +530,25 @@ function ExportExtension() {
             </Box>
         </Box>
     );
+    } catch (err) {
+        console.error('ExportExtension render error:', err);
+        return (
+            <Box padding={3} className="export-container">
+                <Text size="large" marginBottom={2}>
+                    ⚠️ Something went wrong
+                </Text>
+                <Text marginBottom={2}>
+                    The extension encountered an error during rendering. Please refresh the page and try again.
+                </Text>
+                <Text size="small" textColor="light">
+                    Error: {err.message}
+                </Text>
+                <Button onClick={() => window.location.reload()} size="large" marginTop={2}>
+                    Refresh Extension
+                </Button>
+            </Box>
+        );
+    }
 }
 
 initializeBlock(() => (
