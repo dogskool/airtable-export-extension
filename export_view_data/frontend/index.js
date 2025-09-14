@@ -85,7 +85,6 @@ function ExportExtension() {
     const [isInitialized, setIsInitialized] = useState(false);
     const [customFilename, setCustomFilename] = useState('');
     const [showFilenameInput, setShowFilenameInput] = useState(false);
-    const [isMounted, setIsMounted] = useState(true);
     
     // Get available tables and views with safety checks
     const tables = base?.tables || [];
@@ -114,46 +113,7 @@ function ExportExtension() {
         return generateDefaultFilename();
     };
     
-    // Safe state update function with debouncing
-    const safeSetState = useCallback((setter, value, delay = 0) => {
-        if (isMounted) {
-            try {
-                if (delay > 0) {
-                    setTimeout(() => {
-                        if (isMounted) {
-                            setter(value);
-                        }
-                    }, delay);
-                } else {
-                    setter(value);
-                }
-            } catch (err) {
-                console.error('State update error:', err);
-            }
-        }
-    }, [isMounted]);
 
-    // Debounced state update function
-    const debouncedSetState = useCallback((setter, value, delay = 100) => {
-        if (isMounted) {
-            try {
-                setTimeout(() => {
-                    if (isMounted) {
-                        setter(value);
-                    }
-                }, delay);
-            } catch (err) {
-                console.error('Debounced state update error:', err);
-            }
-        }
-    }, [isMounted]);
-
-    // Cleanup effect
-    React.useEffect(() => {
-        return () => {
-            setIsMounted(false);
-        };
-    }, []);
 
     // Initialize component safely
     React.useEffect(() => {
@@ -251,6 +211,35 @@ function ExportExtension() {
         }
     }, [base, tables, selectedTableId]);
     
+    // Additional attempt to detect context after component is fully loaded
+    React.useEffect(() => {
+        if (isInitialized && selectedTableId && !selectedViewId) {
+            console.log('Attempting additional context detection...');
+            try {
+                const selectedTable = base.getTableById(selectedTableId);
+                if (selectedTable) {
+                    // Try to get the current view for the selected table
+                    let currentViewId = null;
+                    
+                    if (typeof selectedTable.getViewId === 'function') {
+                        currentViewId = selectedTable.getViewId();
+                        console.log('Got current view ID from selected table:', currentViewId);
+                    }
+                    
+                    if (currentViewId) {
+                        const currentView = selectedTable.getViewById(currentViewId);
+                        if (currentView) {
+                            console.log('Found current view for selected table:', currentView.name);
+                            setSelectedViewId(currentView.id);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Additional context detection failed:', error);
+            }
+        }
+    }, [isInitialized, selectedTableId, selectedViewId, base]);
+    
     // Set default view when table changes
     React.useEffect(() => {
         try {
@@ -286,9 +275,9 @@ function ExportExtension() {
             console.log('selectedView:', selectedView);
             console.log('records:', records);
             
-            safeSetState(setIsExporting, true);
-            safeSetState(setError, null);
-            safeSetState(setSuccess, null);
+            setIsExporting(true);
+            setError(null);
+            setSuccess(null);
 
             if (!selectedTable || !selectedView) {
                 throw new Error('Please select a table and view');
@@ -337,25 +326,24 @@ function ExportExtension() {
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const fileName = getExportFilename();
             
-            // Use the new download function with completion callback
-            downloadFile(blob, fileName, (success) => {
-                if (success) {
-                    debouncedSetState(setSuccess, `Successfully exported ${records ? records.length : 0} records to CSV`, 100);
-                    debouncedSetState(setError, null, 100);
-                } else {
-                    debouncedSetState(setError, 'Failed to download file. Please try again.', 100);
-                    debouncedSetState(setSuccess, null, 100);
-                }
-                // Always reset exporting state after download attempt
-                debouncedSetState(setIsExporting, false, 150);
-            });
+            // Use the simplified download function
+            const success = downloadFile(blob, fileName);
+            
+            if (success) {
+                setSuccess(`Successfully exported ${records ? records.length : 0} records to CSV`);
+                setError(null);
+            } else {
+                setError('Failed to download file. Please try again.');
+                setSuccess(null);
+            }
         } catch (err) {
             console.error('CSV Export error:', err);
-            debouncedSetState(setError, `CSV Export failed: ${err.message}`, 100);
-            debouncedSetState(setSuccess, null, 100);
-            debouncedSetState(setIsExporting, false, 150);
+            setError(`CSV Export failed: ${err.message}`);
+            setSuccess(null);
+        } finally {
+            setIsExporting(false);
         }
-    }, [records, selectedTable, selectedView, debouncedSetState]);
+    }, [records, selectedTable, selectedView]);
 
     const exportToExcel = useCallback(async () => {
         try {
@@ -364,9 +352,9 @@ function ExportExtension() {
             console.log('selectedView:', selectedView);
             console.log('records:', records);
             
-            safeSetState(setIsExporting, true);
-            safeSetState(setError, null);
-            safeSetState(setSuccess, null);
+            setIsExporting(true);
+            setError(null);
+            setSuccess(null);
 
             if (!selectedTable || !selectedView) {
                 throw new Error('Please select a table and view');
@@ -455,25 +443,24 @@ function ExportExtension() {
             });
             const fileName = getExportFilename();
             
-            // Use the new download function with completion callback
-            downloadFile(blob, fileName, (success) => {
-                if (success) {
-                    debouncedSetState(setSuccess, `Successfully exported ${records ? records.length : 0} records to Excel`, 100);
-                    debouncedSetState(setError, null, 100);
-                } else {
-                    debouncedSetState(setError, 'Failed to download file. Please try again.', 100);
-                    debouncedSetState(setSuccess, null, 100);
-                }
-                // Always reset exporting state after download attempt
-                debouncedSetState(setIsExporting, false, 150);
-            });
+            // Use the simplified download function
+            const success = downloadFile(blob, fileName);
+            
+            if (success) {
+                setSuccess(`Successfully exported ${records ? records.length : 0} records to Excel`);
+                setError(null);
+            } else {
+                setError('Failed to download file. Please try again.');
+                setSuccess(null);
+            }
         } catch (err) {
             console.error('Excel Export error:', err);
-            debouncedSetState(setError, `Excel Export failed: ${err.message}`, 100);
-            debouncedSetState(setSuccess, null, 100);
-            debouncedSetState(setIsExporting, false, 150);
+            setError(`Excel Export failed: ${err.message}`);
+            setSuccess(null);
+        } finally {
+            setIsExporting(false);
         }
-    }, [records, selectedTable, selectedView, debouncedSetState]);
+    }, [records, selectedTable, selectedView]);
 
     const handleExport = useCallback(async () => {
         try {
@@ -482,12 +469,9 @@ function ExportExtension() {
             console.log('Selected view:', selectedView?.name);
             console.log('Records count:', records?.length);
             
-            safeSetState(setIsExporting, true);
-            safeSetState(setError, null);
-            safeSetState(setSuccess, null);
-            
-            // Add a small delay to ensure state updates are processed
-            await new Promise(resolve => setTimeout(resolve, 50));
+            setIsExporting(true);
+            setError(null);
+            setSuccess(null);
             
             if (exportFormat === 'csv') {
                 console.log('Starting CSV export...');
@@ -500,15 +484,12 @@ function ExportExtension() {
             console.log('Export completed successfully');
         } catch (err) {
             console.error('Export error in handleExport:', err);
-            debouncedSetState(setError, `Export failed: ${err.message}`, 100);
-            debouncedSetState(setSuccess, null, 100);
+            setError(`Export failed: ${err.message}`);
+            setSuccess(null);
         } finally {
-            // Use setTimeout to ensure state update happens after export
-            setTimeout(() => {
-                safeSetState(setIsExporting, false);
-            }, 100);
+            setIsExporting(false);
         }
-    }, [exportFormat, exportToCSV, exportToExcel, safeSetState, debouncedSetState, selectedTable, selectedView, records]);
+    }, [exportFormat, exportToCSV, exportToExcel, selectedTable, selectedView, records]);
 
     // Show loading state if base is not ready or not initialized
     if (!base || !isInitialized) {

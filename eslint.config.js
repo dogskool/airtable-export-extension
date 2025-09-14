@@ -27,6 +27,8 @@ module.exports = [
                 fetch: 'readonly',
                 localStorage: 'readonly',
                 sessionStorage: 'readonly',
+                setTimeout: 'readonly',
+                alert: 'readonly',
             },
             parserOptions: {
                 ecmaFeatures: {

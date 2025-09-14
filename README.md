@@ -1,16 +1,18 @@
-# Airtable Export Extension
+# Airtable Export Extension v2
 
-A powerful Airtable Extension that allows you to export view data to Excel (.xlsx) and CSV formats with a single click. Perfect for data analysis, reporting, and sharing data outside of Airtable.
+A powerful Airtable Extension that allows you to export view data to Excel (.xlsx) and CSV formats with a modern button-based interface. Perfect for data analysis, reporting, and sharing data outside of Airtable.
 
 ## Features
 
-- 📊 **Export to Excel**: Create professional Excel files (.xlsx) with proper formatting
+- 📊 **Export to Excel**: Create professional Excel files (.xlsx) with proper formatting and styling
 - 📄 **Export to CSV**: Generate CSV files for data analysis and import into other tools
-- 🎯 **View-based Export**: Export data from any Airtable view
+- 🎯 **Button Interface**: Modern button-based selection for tables and views
 - 🔄 **All Field Types**: Handles all Airtable field types including attachments, linked records, and more
-- 🎨 **Modern UI**: Clean, responsive interface that works in both light and dark modes
+- 🎨 **Clean UI**: Light theme with intuitive button-based interface
 - ⚡ **Fast Performance**: Optimized for large datasets
 - 🛡️ **Error Handling**: Comprehensive error handling with user-friendly messages
+- 📝 **Custom Filenames**: Option to customize export filenames
+- 🔍 **Smart Detection**: Auto-detect current table/view (when available)
 
 ## Installation
 
@@ -71,8 +73,7 @@ Exported files are automatically named using the following format:
 ### Dependencies
 
 - `@airtable/blocks`: Airtable's official SDK for building extensions
-- `xlsx`: SheetJS library for Excel file generation
-- `file-saver`: Client-side file saving utility
+- `exceljs`: Modern and secure library for Excel file generation
 - `react`: UI framework
 - `react-dom`: React DOM rendering
 
@@ -81,8 +82,8 @@ Exported files are automatically named using the following format:
 The extension is built using:
 - **React 16.14.0**: For the user interface
 - **Airtable Blocks SDK**: For accessing Airtable data
-- **SheetJS**: For Excel file generation
-- **FileSaver.js**: For client-side file downloads
+- **ExcelJS**: For Excel file generation (replaces vulnerable xlsx library)
+- **Custom Download Function**: For client-side file downloads (Airtable-compatible)
 
 ### Browser Compatibility
 
@@ -96,21 +97,26 @@ The extension is built using:
 ### Project Structure
 
 ```
-airtable_export_cpe/
+airtable-export-extension/
 ├── frontend/
-│   ├── index.js          # Main React component
-│   └── style.css         # Styling and themes
+│   ├── index.js          # Main React component with button interface
+│   └── style.css         # Light theme styling
 ├── block.json            # Extension metadata
 ├── package.json          # Dependencies and scripts
+├── eslint.config.js      # ESLint configuration
+├── .block/
+│   └── remote.json       # Remote configuration
 └── README.md            # This file
 ```
 
 ### Key Components
 
-- **ExportExtension**: Main React component
+- **ExportExtension**: Main React component with button interface
 - **exportToCSV()**: CSV export functionality
-- **exportToExcel()**: Excel export functionality
+- **exportToExcel()**: Excel export functionality with ExcelJS
 - **handleExport()**: Export orchestration
+- **detectCurrentContext()**: Smart table/view detection
+- **downloadFile()**: Custom download function for Airtable compatibility
 
 ### Customization
 
@@ -202,6 +208,15 @@ For support and questions:
 - Review the troubleshooting section above
 
 ## Changelog
+
+### Version 2.0.0
+- **Button Interface**: Replaced dropdowns with modern button-based selection
+- **Security Updates**: Replaced vulnerable xlsx library with ExcelJS
+- **Custom Filenames**: Added ability to customize export filenames
+- **Smart Detection**: Added auto-detection of current table/view
+- **Light Theme**: Clean, modern light theme interface
+- **Error Handling**: Improved error handling and user feedback
+- **Code Quality**: Updated ESLint configuration and fixed all warnings
 
 ### Version 1.0.0
 - Initial release
