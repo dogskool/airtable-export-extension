@@ -1,8 +1,34 @@
 import {initializeBlock, useBase, useRecords, Button, Text, Box, Select, Loader, Alert} from '@airtable/blocks/ui';
 import React, {useState, useCallback} from 'react';
 import ExcelJS from 'exceljs';
-import {saveAs} from 'file-saver';
+// import {saveAs} from 'file-saver'; // Commented out due to Airtable compatibility issues
 import './style.css';
+
+// Custom download function that works in Airtable environment
+const downloadFile = (blob, fileName) => {
+    try {
+        // Create a temporary URL for the blob
+        const url = URL.createObjectURL(blob);
+        
+        // Create a temporary anchor element
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        
+        // Append to body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the URL
+        URL.revokeObjectURL(url);
+        
+        return true;
+    } catch (error) {
+        console.error('Download error:', error);
+        return false;
+    }
+};
 
 function ExportExtension() {
     const base = useBase();
@@ -85,13 +111,12 @@ function ExportExtension() {
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.csv`;
             
-            try {
-                saveAs(blob, fileName);
+            const downloadSuccess = downloadFile(blob, fileName);
+            if (downloadSuccess) {
                 setSuccess(`Successfully exported ${records ? records.length : 0} records to CSV`);
                 setError(null);
-            } catch (saveError) {
-                console.error('Save error:', saveError);
-                setError(`File saved but download may have failed: ${saveError.message}`);
+            } else {
+                setError('Failed to download file. Please try again.');
                 setSuccess(null);
             }
         } catch (err) {
@@ -187,13 +212,12 @@ function ExportExtension() {
             });
             const fileName = `${selectedTable.name}_${selectedView.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
             
-            try {
-                saveAs(blob, fileName);
+            const downloadSuccess = downloadFile(blob, fileName);
+            if (downloadSuccess) {
                 setSuccess(`Successfully exported ${records ? records.length : 0} records to Excel`);
                 setError(null);
-            } catch (saveError) {
-                console.error('Save error:', saveError);
-                setError(`File saved but download may have failed: ${saveError.message}`);
+            } else {
+                setError('Failed to download file. Please try again.');
                 setSuccess(null);
             }
         } catch (err) {
