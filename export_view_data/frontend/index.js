@@ -80,6 +80,7 @@ function ExportExtension() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isMounted, setIsMounted] = useState(true);
     
     // Get available tables and views with safety checks
     const tables = base?.tables || [];
@@ -91,35 +92,57 @@ function ExportExtension() {
     const fallbackView = tables.length > 0 && tables[0].views.length > 0 ? tables[0].views[0] : null;
     const records = useRecords(selectedView || fallbackView);
     
+    // Safe state update function
+    const safeSetState = useCallback((setter, value) => {
+        if (isMounted) {
+            try {
+                setter(value);
+            } catch (err) {
+                console.error('State update error:', err);
+            }
+        }
+    }, [isMounted]);
+
+    // Cleanup effect
+    React.useEffect(() => {
+        return () => {
+            setIsMounted(false);
+        };
+    }, []);
+
     // Initialize component safely
     React.useEffect(() => {
         try {
             if (base && tables && tables.length > 0) {
-                setIsInitialized(true);
+                safeSetState(setIsInitialized, true);
                 if (!selectedTableId) {
-                    setSelectedTableId(tables[0].id);
+                    safeSetState(setSelectedTableId, tables[0].id);
                 }
             }
         } catch (err) {
             console.error('Initialization error:', err);
-            setError('Failed to initialize extension. Please refresh and try again.');
+            safeSetState(setError, 'Failed to initialize extension. Please refresh and try again.');
         }
-    }, [base, tables, selectedTableId]);
+    }, [base, tables, selectedTableId, safeSetState]);
     
     // Set default view when table changes
     React.useEffect(() => {
         try {
             if (views && views.length > 0 && !selectedViewId) {
-                setSelectedViewId(views[0].id);
+                safeSetState(setSelectedViewId, views[0].id);
             }
         } catch (err) {
             console.error('View selection error:', err);
-            setError('Failed to load views. Please try selecting a different table.');
+            safeSetState(setError, 'Failed to load views. Please try selecting a different table.');
         }
-    }, [views, selectedViewId]);
+    }, [views, selectedViewId, safeSetState]);
 
     const exportToCSV = useCallback(async () => {
         try {
+            safeSetState(setIsExporting, true);
+            safeSetState(setError, null);
+            safeSetState(setSuccess, null);
+
             if (!selectedTable || !selectedView) {
                 throw new Error('Please select a table and view');
             }
@@ -167,20 +190,30 @@ function ExportExtension() {
             
             const downloadSuccess = downloadFile(blob, fileName);
             if (downloadSuccess) {
-                setSuccess(`Successfully exported ${records ? records.length : 0} records to CSV`);
-                setError(null);
+                safeSetState(setSuccess, `Successfully exported ${records ? records.length : 0} records to CSV`);
+                safeSetState(setError, null);
             } else {
-                setError('Failed to download file. Please try again.');
-                setSuccess(null);
+                safeSetState(setError, 'Failed to download file. Please try again.');
+                safeSetState(setSuccess, null);
             }
         } catch (err) {
-            setError(`CSV Export failed: ${err.message}`);
-            setSuccess(null);
+            console.error('CSV Export error:', err);
+            safeSetState(setError, `CSV Export failed: ${err.message}`);
+            safeSetState(setSuccess, null);
+        } finally {
+            // Use setTimeout to ensure state update happens after download
+            setTimeout(() => {
+                safeSetState(setIsExporting, false);
+            }, 100);
         }
-    }, [records, selectedTable, selectedView]);
+    }, [records, selectedTable, selectedView, safeSetState]);
 
     const exportToExcel = useCallback(async () => {
         try {
+            safeSetState(setIsExporting, true);
+            safeSetState(setError, null);
+            safeSetState(setSuccess, null);
+
             if (!selectedTable || !selectedView) {
                 throw new Error('Please select a table and view');
             }
@@ -268,22 +301,28 @@ function ExportExtension() {
             
             const downloadSuccess = downloadFile(blob, fileName);
             if (downloadSuccess) {
-                setSuccess(`Successfully exported ${records ? records.length : 0} records to Excel`);
-                setError(null);
+                safeSetState(setSuccess, `Successfully exported ${records ? records.length : 0} records to Excel`);
+                safeSetState(setError, null);
             } else {
-                setError('Failed to download file. Please try again.');
-                setSuccess(null);
+                safeSetState(setError, 'Failed to download file. Please try again.');
+                safeSetState(setSuccess, null);
             }
         } catch (err) {
-            setError(`Excel Export failed: ${err.message}`);
-            setSuccess(null);
+            console.error('Excel Export error:', err);
+            safeSetState(setError, `Excel Export failed: ${err.message}`);
+            safeSetState(setSuccess, null);
+        } finally {
+            // Use setTimeout to ensure state update happens after download
+            setTimeout(() => {
+                safeSetState(setIsExporting, false);
+            }, 100);
         }
-    }, [records, selectedTable, selectedView]);
+    }, [records, selectedTable, selectedView, safeSetState]);
 
     const handleExport = useCallback(async () => {
-        setIsExporting(true);
-        setError(null);
-        setSuccess(null);
+        safeSetState(setIsExporting, true);
+        safeSetState(setError, null);
+        safeSetState(setSuccess, null);
         
         try {
             if (exportFormat === 'csv') {
@@ -291,10 +330,16 @@ function ExportExtension() {
             } else {
                 await exportToExcel();
             }
+        } catch (err) {
+            safeSetState(setError, `Export failed: ${err.message}`);
+            safeSetState(setSuccess, null);
         } finally {
-            setIsExporting(false);
+            // Use setTimeout to ensure state update happens after export
+            setTimeout(() => {
+                safeSetState(setIsExporting, false);
+            }, 100);
         }
-    }, [exportFormat, exportToCSV, exportToExcel]);
+    }, [exportFormat, exportToCSV, exportToExcel, safeSetState]);
 
     // Show loading state if base is not ready or not initialized
     if (!base || !isInitialized) {
