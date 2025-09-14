@@ -1,8 +1,47 @@
 import {initializeBlock, useBase, useRecords, Button, Text, Box, Select, Loader, Alert} from '@airtable/blocks/ui';
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import ExcelJS from 'exceljs';
 // import {saveAs} from 'file-saver'; // Commented out due to Airtable compatibility issues
 import './style.css';
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error('Error Boundary caught an error:', error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <Box padding={3} className="export-container">
+                    <Text size="large" marginBottom={2}>
+                        ⚠️ Something went wrong
+                    </Text>
+                    <Text marginBottom={2}>
+                        The extension encountered an error. Please refresh the page and try again.
+                    </Text>
+                    <Button 
+                        onClick={() => window.location.reload()} 
+                        size="large"
+                    >
+                        Refresh Extension
+                    </Button>
+                </Box>
+            );
+        }
+
+        return this.props.children;
+    }
+}
 
 // Custom download function that works in Airtable environment
 const downloadFile = (blob, fileName) => {
@@ -40,6 +79,7 @@ function ExportExtension() {
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [isInitialized, setIsInitialized] = useState(false);
     
     // Get available tables and views with safety checks
     const tables = base?.tables || [];
@@ -51,16 +91,30 @@ function ExportExtension() {
     const fallbackView = tables.length > 0 && tables[0].views.length > 0 ? tables[0].views[0] : null;
     const records = useRecords(selectedView || fallbackView);
     
-    // Set default selections when tables are available
+    // Initialize component safely
     React.useEffect(() => {
-        if (tables && tables.length > 0 && !selectedTableId) {
-            setSelectedTableId(tables[0].id);
+        try {
+            if (base && tables && tables.length > 0) {
+                setIsInitialized(true);
+                if (!selectedTableId) {
+                    setSelectedTableId(tables[0].id);
+                }
+            }
+        } catch (err) {
+            console.error('Initialization error:', err);
+            setError('Failed to initialize extension. Please refresh and try again.');
         }
-    }, [tables, selectedTableId]);
+    }, [base, tables, selectedTableId]);
     
+    // Set default view when table changes
     React.useEffect(() => {
-        if (views && views.length > 0 && !selectedViewId) {
-            setSelectedViewId(views[0].id);
+        try {
+            if (views && views.length > 0 && !selectedViewId) {
+                setSelectedViewId(views[0].id);
+            }
+        } catch (err) {
+            console.error('View selection error:', err);
+            setError('Failed to load views. Please try selecting a different table.');
         }
     }, [views, selectedViewId]);
 
@@ -242,8 +296,8 @@ function ExportExtension() {
         }
     }, [exportFormat, exportToCSV, exportToExcel]);
 
-    // Show loading state if base is not ready
-    if (!base) {
+    // Show loading state if base is not ready or not initialized
+    if (!base || !isInitialized) {
         return (
             <Box padding={3} className="export-container">
                 <Text size="large" marginBottom={2}>
@@ -356,4 +410,8 @@ function ExportExtension() {
     );
 }
 
-initializeBlock(() => <ExportExtension />);
+initializeBlock(() => (
+    <ErrorBoundary>
+        <ExportExtension />
+    </ErrorBoundary>
+));
