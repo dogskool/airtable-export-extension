@@ -230,8 +230,8 @@ function ExportExtension() {
                 </Text>
                 <Select
                     value={selectedTableId || ''}
-                    onChange={e => {
-                        setSelectedTableId(e.target.value);
+                    onChange={value => {
+                        setSelectedTableId(value);
                         setSelectedViewId(null); // Reset view when table changes
                     }}
                     options={tables.map(table => ({
@@ -249,7 +249,7 @@ function ExportExtension() {
                 </Text>
                 <Select
                     value={selectedViewId || ''}
-                    onChange={e => setSelectedViewId(e.target.value)}
+                    onChange={value => setSelectedViewId(value)}
                     options={views.map(view => ({
                         value: view.id,
                         label: view.name
