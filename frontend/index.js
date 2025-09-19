@@ -92,7 +92,7 @@ function ExportExtension() {
 
     return (
         <Box padding={3}>
-            <Text size="large" weight="bold" marginBottom={2}>📊 Export Data</Text>
+            <Text size="large" weight="bold" marginBottom={2}>📊 Export View Data</Text>
             <Text size="small" textColor="light" marginBottom={3}>
                 Table: <strong>{tableName}</strong><br/>
                 View:&nbsp; <strong>{viewName}</strong>
