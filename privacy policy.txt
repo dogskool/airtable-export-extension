@@ -1,0 +1,25 @@
+Privacy Policy for Export View Data
+
+1. Introduction
+This Privacy Policy outlines how PC Help! ("we," "us," or "our") handles your information when you use our Airtable Extension, "Export View Data" (the "Extension"). We are committed to protecting your privacy and ensuring that your personal information is handled responsibly.
+
+2. Information We Do Not Collect
+We want to assure you that we do not capture, store, sell, or use any customer data in any way. This includes, but is not limited to:
+Personal identification information (e.g., name, email address, phone number)
+Usage data (e.g., how you interact with the Extension)
+Any other data that could be used to identify you or your activities
+
+3. Data Security
+Since we do not collect or store any personal data, there are no data security measures in place for customer data. However, we take the security of our Extension seriously and implement appropriate technical and organizational measures to protect our systems.
+
+4. Third-Party Services
+Our Extension may contain links to third-party websites or services. We do not control these third-party services and are not responsible for their privacy practices. We encourage you to review the privacy policies of any third-party services you use.
+
+5. Changes to This Privacy Policy
+We may update this Privacy Policy from time to time. Any changes will be effective immediately upon posting the revised policy on this page. Your continued use of the Extension after any changes constitutes your acceptance of the new Privacy Policy.
+
+6. Contact Information
+If you have any questions or concerns about this Privacy Policy, please contact us at:
+PC Help!
+Richard Mason
+rmason@dogskool.com
