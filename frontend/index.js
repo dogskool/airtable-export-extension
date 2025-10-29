@@ -18,9 +18,9 @@ function ExportExtension() {
             if (!view && table) view = table.views[0];
             tableName = table?.name || 'Unknown';
             viewName  = view?.name  || 'Unknown';
-        } catch (e) {
-            table = base.tables[0];
-            view  = table?.views[0];
+        } catch {
+            table     = base.tables[0];
+            view      = table?.views[0];
             tableName = table?.name || 'Unknown';
             viewName  = view?.name  || 'Unknown';
         }
@@ -51,43 +51,66 @@ function ExportExtension() {
         return toSafeFilename(customName);
     };
 
-    // ---- Export ----
+    // ---- Export only the view's visible fields (in view order) ----
     const handleExport = async () => {
+        if (!table || !view) {
+            alert('No table/view selected');
+            return;
+        }
+
+        let metadataQuery = null;
+        let recordsQuery  = null;
+
         try {
-            if (!table || !view) {
-                alert('No table/view selected');
+            // 1) Load the view metadata (visible fields + field order)
+            // NOTE: This is the official way to get the *visible* fields for the view.
+            // Docs: View -> selectMetadataAsync()
+            metadataQuery = await view.selectMetadataAsync(); // returns ViewMetadataQueryResult
+            // Prefer the exact visible fields list (already in view order)
+            let visibleFields = metadataQuery?.visibleFields;
+            // Fallback to table fields if metadata not available for some reason
+            if (!visibleFields || visibleFields.length === 0) {
+                visibleFields = table.fields;
+            }
+
+            if (!visibleFields || visibleFields.length === 0) {
+                alert('No fields available to export');
                 return;
             }
 
-            // fields: prefer view’s visible fields
-            let visibleFields = view.visibleFields?.length ? view.visibleFields : table.fields;
+            // 2) Load only those fields from the view
+            recordsQuery = await view.selectRecordsAsync({ fields: visibleFields });
 
-            // query
-            const query = await view.selectRecordsAsync({ fields: visibleFields });
+            if (!recordsQuery.records || recordsQuery.records.length === 0) {
+                alert('No records found to export');
+                return;
+            }
 
-            // data
+            // 3) Build rows in the same order as the view shows them
             const header = visibleFields.map(f => f.name);
-            const rows = query.records.map(rec => visibleFields.map(f => rec.getCellValueAsString(f)));
+            const rows   = recordsQuery.records.map(rec =>
+                visibleFields.map(f => rec.getCellValueAsString(f))
+            );
 
-            // workbook
+            // 4) Write workbook
             const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
 
             const filename = resolvedFilename();
             XLSX.writeFile(wb, filename);
-
-            // alert(`Exported: ${filename}`);
         } catch (err) {
             console.error('Export error:', err);
-            alert(`Export failed: ${err.message}`);
+            alert(`Export failed: ${err?.message || err}`);
+        } finally {
+            // Always unload queries when done
+            if (recordsQuery)  await recordsQuery.unloadDataAsync?.();
+            if (metadataQuery) await metadataQuery.unloadDataAsync?.();
         }
     };
 
     if (!base) {
-        return (
-            <Box padding={3}><Text>Loading...</Text></Box>
-        );
+        return <Box padding={3}><Text>Loading...</Text></Box>;
     }
 
     return (
@@ -105,7 +128,7 @@ function ExportExtension() {
                 <Input
                     value={customName}
                     onChange={e => setCustomName(e.target.value)}
-                    placeholder={defaultFilename}   // greyed default
+                    placeholder={defaultFilename}
                 />
             </FormField>
 
